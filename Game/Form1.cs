@@ -5,10 +5,13 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Runtime;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
+using System.Windows.Input;
 using Cells;
 
 namespace App
@@ -23,6 +26,10 @@ namespace App
         public Form3()
         {
             InitializeComponent();
+
+            GCSettings.LatencyMode = GCLatencyMode.SustainedLowLatency;
+
+            GC.TryStartNoGCRegion(100000000, true);
 
             image = new Bitmap(pictureBox1.Width, pictureBox1.Height);
 
@@ -57,6 +64,8 @@ namespace App
             {
                 try
                 {
+                    //Focus();
+
                     var cellsNr = 0;
                     var cellInf = 0;
                     var foodNr = 0;
@@ -64,46 +73,47 @@ namespace App
                     var mcp = 0;
                     var mvi = 0;
                     g.Clear(Color.LightSkyBlue);
-                   
 
-                    for (var i = 0; i < Game.Count; i++)
+                    for(int i = 0; i < Game.Count; i++ )
                     {
                         var o = Game[i];
+                        //Refresh();
+
                         if (o is Cell cell)
                         {
-                            cell.Draw((Bitmap)image);
-                            cell.Move(Game, pictureBox1.Width, pictureBox1.Height);
-                            
+                            cell.Draw(image);
+                            cell.Move(Game, g, pictureBox1.Width, pictureBox1.Height);
+
                             cellsNr++;
                             if (cell.Infected) cellInf++;
                             if (cell.ProtInf > mcp) mcp = cell.ProtInf;
                         }
+
                         if (o is Food food)
                         {
-                            food.Draw((Bitmap)image);
+                            food.Draw(image);
                             food.Move(pictureBox1.Width, pictureBox1.Height);
-                            
+
                             foodNr++;
                         }
+
                         if (o is Virus virus)
                         {
                             virus.Draw(g);
                             virus.Move(Game, pictureBox1.Width, pictureBox1.Height);
-                            
+
                             virusNr++;
                             if (virus.Attack > mvi) mvi = virus.Attack;
                         }
-
-
                     }
 
-                 
 
-                    label1.Text = $"Cells: {cellsNr} ({cellInf} Infected)";
-                    label2.Text = $"Food: {foodNr}";
-                    label3.Text = $"Virus: {virusNr}";
-                    label4.Text = $"Max Cell Protection: {mcp}";
-                    label5.Text = $"Max Virus Infection: {mvi}";
+
+                    label1.Text = $@"Cells: {cellsNr} ({cellInf} Infected)";
+                    label2.Text = $@"Food: {foodNr}";
+                    label3.Text = $@"Virus: {virusNr}";
+                    label4.Text = $@"Max Cell Protection: {mcp}";
+                    label5.Text = $@"Max Virus Infection: {mvi}";
 
                     chart.Series["Cells"].Points[0] = new DataPoint(0, cellsNr);
                     chart.Series["Food"].Points[0] = new DataPoint(0, foodNr);
@@ -442,14 +452,6 @@ namespace App
             {
                 MessageBox.Show(exception.Message);
                 Try(() => fs.Close());
-            }
-        }
-
-        private void Form3_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Space)
-            {
-                Button3_Click(null, null);
             }
         }
 

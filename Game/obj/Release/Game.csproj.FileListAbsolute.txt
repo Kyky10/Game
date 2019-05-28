@@ -16,3 +16,4 @@ C:\Users\radus\source\repos\Game\Game\obj\Release\Game.csproj.GenerateResource.c
 C:\Users\radus\source\repos\Game\Game\obj\Release\Game.csproj.CoreCompileInputs.cache
 C:\Users\radus\source\repos\Game\Game\obj\Release\Game.exe
 C:\Users\radus\source\repos\Game\Game\obj\Release\Game.pdb
+C:\Users\radus\source\repos\Game\Game\bin\Release\Game.exe.config

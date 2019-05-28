@@ -1,15 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
+using Game;
 
 namespace Cells{
+    
     [Serializable]
     public class Cell
     {
-
+        
         private static Random r = new Random();
 
         public Cell(int size, Color color, Point? location = null, bool? infected = null, int? Protection = null, int? calories = null)
@@ -46,12 +51,15 @@ namespace Cells{
         }
 
         private readonly Dictionary<Point, Point> Lines = new Dictionary<Point, Point>();
-        
+
+        private static int namesL = new Names().Get().Length;
+        public string Name = new Names().Get()[r.Next(namesL)];
         public int Size { get; private set; }
         private List<Point> ToMove = new List<Point>();
         public Color Color { get; private set; }
         private bool GotoDone = true;
         private int foodTick = 60;
+        public bool Dead = false;
         public int Calories { get; private set; }
         public int ProtInf = 0;
         public int InfAtta = 0;
@@ -68,9 +76,10 @@ namespace Cells{
         {
             return m.Location;
         }
-
+        
         public void Draw(Bitmap image,
-            System.Drawing.Drawing2D.SmoothingMode mode = System.Drawing.Drawing2D.SmoothingMode.HighSpeed)
+            System.Drawing.Drawing2D.SmoothingMode mode =
+                System.Drawing.Drawing2D.SmoothingMode.HighSpeed)
         {
             var g = Graphics.FromImage(image);
             g.SmoothingMode = mode;
@@ -80,333 +89,426 @@ namespace Cells{
             var inf = infCount;
 
             Color color = Color.Empty;
-            
 
-            if (Infected)
+            if (!Dead)
             {
-                g.FillCircle(Color.HotPink.SetTrans(60), new Point(Location.X + Rand(), Location.Y + Rand()), Size / 3);
-                color = Color.HotPink.SetTrans(40);
-            }
-            else
-            {
-                g.FillCircle(Color.Gold.SetTrans(220), new Point(Location.X + Rand(), Location.Y + Rand()), Size / 3);
-                color = Color.LimeGreen.SetTrans(40);
-            }
 
-
-            if (infCount != 0)
-            {
-                g.DrawCircle(Color, Location, Size + Calories / 5 + infCount / 10);
-                g.FillCircle(color, Location, Size + Calories / 5 + infCount / 10);
-            }
-            else
-            {
-                g.DrawCircle(Color, Location, Size + Calories / 5);
-                g.FillCircle(color, Location, Size + Calories / 5);
-            }
-
-            foreach (var cicle in Cicles)
-            {
-                if (t)
+                if (Infected)
                 {
-                    loc.Y = Location.Y + cicle;
-                    var pen = new Pen(Color.ForestGreen);
-                    var XRand = Rand();
-                    var YRand = Rand();
-                    if (inf < 0)
-                    {
-                        pen = new Pen(Color.DeepPink);
-                    }
-
-                    
-                    if (Infected)
-                    {
-                        g.DrawLine(new Pen(Color.DeepPink), Location, new Point(loc.X + XRand + r.Next(-3, 1), loc.Y + YRand + r.Next(-1, 3)));
-                    }
-
-                    g.DrawEllipse(pen, loc.X + XRand, loc.Y + YRand, 6, 8);
-                    inf--;
-                    t = false;
+                    g.FillCircle(Color.HotPink.SetTrans(60), new Point(Location.X + Rand(), Location.Y + Rand()),
+                        Size / 3);
+                    color = Color.HotPink.SetTrans(40);
                 }
                 else
                 {
-                    loc.X = Location.X + cicle;
-                    t = true;
+                    g.FillCircle(Color.Gold.SetTrans(220), new Point(Location.X + Rand(), Location.Y + Rand()),
+                        Size / 3);
+                    color = Color.LimeGreen.SetTrans(40);
                 }
 
+
+                if (infCount != 0)
+                {
+                    g.DrawCircle(Color, Location, Size + Calories / 5 + infCount / 10);
+                    g.FillCircle(color, Location, Size + Calories / 5 + infCount / 10);
+                }
+                else
+                {
+                    g.DrawCircle(Color, Location, Size + Calories / 5);
+                    g.FillCircle(color, Location, Size + Calories / 5);
+                }
+
+                foreach (var cicle in Cicles)
+                {
+                    if (t)
+                    {
+                        loc.Y = Location.Y + cicle;
+                        var pen = new Pen(Color.ForestGreen);
+                        var XRand = Rand();
+                        var YRand = Rand();
+                        if (inf < 0)
+                        {
+                            pen = new Pen(Color.DeepPink);
+                        }
+
+
+                        if (Infected)
+                        {
+                            g.DrawLine(new Pen(Color.DeepPink), Location,
+                                new Point(loc.X + XRand + r.Next(-3, 1), loc.Y + YRand + r.Next(-1, 3)));
+                        }
+
+                        g.DrawEllipse(pen, loc.X + XRand, loc.Y + YRand, 6, 8);
+                        inf--;
+                        t = false;
+                    }
+                    else
+                    {
+                        loc.X = Location.X + cicle;
+                        t = true;
+                    }
+
+                }
+
+                foreach (var line in Lines)
+                {
+                    g.DrawLine(new Pen(Color.MediumPurple), Location + (Size) line.Key + new Size(Rand(), Rand()),
+                        Location + (Size) line.Value + new Size(Rand(), Rand()));
+                }
+            }
+            else
+            {
+                g.DrawCircle(Color.Gray, Location, Size + Calories / 5 + infCount / 10);
+                g.FillCircle(Color.DimGray.SetTrans(20), new Point(Location.X + Rand(), Location.Y + Rand()),
+                    Size / 3);
+                foreach (var cicle in Cicles)
+                {
+                    if (t)
+                    {
+                        loc.Y = Location.Y + cicle;
+                        var pen = new Pen(Color.ForestGreen);
+                        if (inf < 0)
+                        {
+                            pen = new Pen(Color.DeepPink);
+                        }
+
+
+                        if (Infected)
+                        {
+                            g.DrawLine(new Pen(Color.DeepPink), Location,
+                                new Point(loc.X, loc.Y));
+                        }
+
+                        g.DrawEllipse(pen, loc.X, loc.Y, 6, 8);
+                        inf--;
+                        t = false;
+                    }
+                    else
+                    {
+                        loc.X = Location.X + cicle;
+                        t = true;
+                    }
+                }
+
+                foreach (var line in Lines)
+                {
+                    g.DrawLine(new Pen(Color.MediumPurple), Location + (Size)line.Key,
+                        Location + (Size)line.Value);
+                }
             }
 
-            foreach (var line in Lines)
-            {
-                g.DrawLine(new Pen(Color.MediumPurple),  Location + (Size)line.Key + new Size(Rand(), Rand()), Location + (Size)line.Value + new Size(Rand(), Rand()));
-            }
+            g.DrawString(Name, new Font(FontFamily.GenericSansSerif, Size / 2, FontStyle.Bold), new SolidBrush(Color.DimGray), Location.X - Size, Location.Y - Size / 4);
         }
 
-        public void Move(List<Object> gameArray, int? limitX = null, int? limitY = null)
+        public void Move(List<Object> gameArray, Graphics graphics,int? limitX = null, int? limitY = null)
         {
-            if (foodTick < 1)
+            if (!Dead)
             {
-                foodTick = 60;
-                Calories--;
-            }
-
-            if (Infected)
-            {
-                infCount--;
-                if (infCount < -80)
+                if (foodTick < 1)
                 {
-                    if (r.Next(200) > 50)
+                    foodTick = 60;
+                    Calories--;
+                }
+
+                if (Infected)
+                {
+                    infCount--;
+                    if (infCount < -80)
                     {
-                        for (int i = 0; i < 2; i++)
+                        if (r.Next(200) > 50)
                         {
-                            foreach (var o in gameArray)
+                            for (int i = 0; i < 2; i++)
                             {
-                                if (o is Cell cell)
+                                foreach (var o in gameArray)
                                 {
-                                    if (((cell.Location.X >= Location.X &
-                                          cell.Location.X <= Location.X + 40) |
-
-                                         (cell.Location.X <= Location.X &
-                                          cell.Location.X >= Location.X - 40)) &
-
-                                        /////////////////////////////////////
-
-                                        ((cell.Location.Y >= Location.Y &
-                                          cell.Location.Y <= Location.Y + 40) |
-
-                                         (cell.Location.Y <= Location.Y &
-                                          cell.Location.Y >= Location.Y - 40)))
+                                    if (o is Cell cell)
                                     {
-                                        if (cell.ProtInf > InfAtta)
+                                        if (((cell.Location.X >= Location.X &
+                                              cell.Location.X <= Location.X + 40) |
+
+                                             (cell.Location.X <= Location.X &
+                                              cell.Location.X >= Location.X - 40)) &
+
+                                            /////////////////////////////////////
+
+                                            ((cell.Location.Y >= Location.Y &
+                                              cell.Location.Y <= Location.Y + 40) |
+
+                                             (cell.Location.Y <= Location.Y &
+                                              cell.Location.Y >= Location.Y - 40)))
                                         {
-                                            if (r.Next(200) > 100)
+                                            if (cell.ProtInf > InfAtta)
                                             {
-                                                InfAtta++;
+                                                if (r.Next(200) > 100)
+                                                {
+                                                    InfAtta++;
+                                                }
                                             }
                                         }
                                     }
                                 }
+                                var loc = Location;
+                                loc.X += Rand(false);
+                                loc.Y += Rand(false);
+                                gameArray.Add(new Virus(loc, InfAtta));
                             }
-                            var loc = Location;
-                            loc.X += Rand(false);
-                            loc.Y += Rand(false);
-                            gameArray.Add(new Virus(loc, InfAtta));
-                        }
 
-                        foreach (var o in gameArray)
-                        {
-                            if (o is Cell)
+                            foreach (var o in gameArray)
                             {
-                                var cell = (Cell) o;
-                                if (cell.Location == Location & cell.ProtInf == ProtInf)
+                                if (o is Cell)
                                 {
-                                    gameArray.Remove(cell);
+                                    var cell = (Cell) o;
+                                    if (cell.Location == Location & cell.ProtInf == ProtInf)
+                                    {
+                                        gameArray.Remove(cell);
+                                    }
                                 }
                             }
                         }
-                    }
-                    else
-                    {
-                        Infected = false;
-                        Size = 20;
-                        ProtInf++;
-                        Cicles.Add(r.Next(-9, 9));
-                    }
-                }
-            }
-
-            if (!Infected & infCount < 5)
-            {
-                infCount++;
-            }
-
-            if (Calories < 1)
-            {
-                foreach (var o in gameArray)
-                {
-                    if (o is Cell)
-                    {
-                        var cell = (Cell)o;
-                        if (cell.Location == Location & cell.ProtInf == ProtInf)
+                        else
                         {
-                            gameArray.Remove(cell);
-                            gameArray.Add(new Food(Location, 5));
+                            Infected = false;
+                            Size = 20;
+                            ProtInf++;
+                            Cicles.Add(r.Next(-9, 9));
                         }
                     }
                 }
-            }
 
-            if (gameArray != null)
-            {
-                var foodList = new List<Food>();
-                foreach (var o in gameArray)
+                if (!Infected & infCount < 5)
                 {
-                    if (o is Food food)
-                    {
-                        foodList.Add(food);
-                    }
+                    infCount++;
                 }
 
-                var IfoodList = foodList.OrderBy(p => p.Location.X).ThenBy(p => p.Location.Y);
-
-                try
+                if (Calories < 1)
                 {
-                    if (GotoDone)
-                    {
-                        var GotoPoint = Location + new Size(r.Next(-100, 100), r.Next(-100, 100));
-
-                        if (IfoodList.Count() != 0)
-                        {
-                            var food = IfoodList.First();
-                            var p1 = new System.Windows.Vector(Location.X, Location.Y);
-                            var p2 = new System.Windows.Vector(food.Location.X, food.Location.Y);
-                            if ((p1 - p2).Length <= 300)
-                            {
-                                GotoPoint = new Point((int) p2.X, (int) p2.Y);
-                            }
-                        }
-
-
-
-
-                        List<Point> tomoveList;
-
-                        //*** Calculates the distance and approximates hops number.
-                        double count_per =
-                            (Math.Pow(Location.X - GotoPoint.X, 2) + Math.Pow(Location.Y - Location.Y, 2));
-                        var nrwithzero = new string('0', count_per.ToString().Length - 2);
-                        var nr = int.Parse("1" + nrwithzero);
-                        var count_per1 = count_per / nr;
-                        var count = count_per1;
-                        if (count > 40)
-                        {
-                            count /= 2;
-                        }
-
-                        // Convert hops number in hops, in points.
-                        tomoveList = SplitLine(new Point(Location.X, Location.Y),
-                            new Point(GotoPoint.X, GotoPoint.Y), (int) count);
-
-                        tomoveList.Remove(tomoveList.First());
-                        ToMove = tomoveList;
-                        
-                        GotoDone = false;
-                        return;
-                    }
+                    Dead = true;
+                    return;
                 }
-                catch (Exception e)
+                
+
+                if (gameArray != null)
                 {
-
-                }
-
-
-            }
-
-            if (Calories >= 40)
-            {
-                while (!(Calories <= 20))
-                {
-                    if (Infected & r.Next(200) > 50)
-                    {
-                        gameArray.Add(new Cell(20, Color.Brown, new Point(Location.X + Rand(true), Location.Y + Rand(true)), false, ProtInf + 1));
-                    }
-                    else
-                    {
-                        gameArray.Add(new Cell(20, Color.Brown, new Point(Location.X + Rand(true), Location.Y + Rand(true)), Infected, ProtInf));
-                    }
-                    Calories -= 20;
-                }
-
-
-            }
-
-            if (!GotoDone)
-            {
-                try
-                {
-                    Location = new Point(ToMove.First().X + Rand(), ToMove.First().Y + Rand());
-                    if (ToMove.Count == 1)
-                    {
-                        GotoDone = true;
-                    }
-                    ToMove.Remove(ToMove.First());
-
+                    var foodList = new List<Location>();
                     foreach (var o in gameArray)
                     {
                         if (o is Food food)
                         {
-                            if (((food.Location.X >= Location.X &
-                                  food.Location.X <= Location.X + Size) |
+                            foodList.Add(new Location(food, food.Location.X, food.Location.Y, 0));
+                        }
 
-                                 (food.Location.X <= Location.X &
-                                  food.Location.X >= Location.X - Size)) &
+                        if (o is Cell cell)
+                        {
+                            if(cell.Dead)
+                                foodList.Add(new Location(cell, cell.Location.X, cell.Location.Y, 1));
 
-                                /////////////////////////////////////
-
-                                ((food.Location.Y >= Location.Y &
-                                  food.Location.Y <= Location.Y + Size) |
-
-                                 (food.Location.Y <= Location.Y &
-                                  food.Location.Y >= Location.Y - Size)))
-                            {
-                                Calories += food.Calories;
-                                gameArray.Remove(food);
-                            }
+                            if(cell.Dead & cell.Infected)
+                                foodList.Add(new Location(cell, cell.Location.X, cell.Location.Y, 2));
                         }
                     }
-                }
-                catch (Exception e)
-                {
-                    
-                }
-            }
 
-            foodTick--;
-            if (limitX.HasValue & limitY.HasValue)
-            {
-                var location = Location;
-                location.X += Rand();
-                location.Y += Rand();
-                if (location.X < 1)
-                {
-                    location.X = 1;
+                    var IfoodList = foodList.OrderBy(p => p.X).ThenBy(p => p.Y);
+
+                    try
+                    {
+                        if (GotoDone)
+                        {
+                            Point GotoPoint = Location + new Size(r.Next(-100, 100), r.Next(-100, 100));
+
+                            
+
+                            if (IfoodList.Count() != 0)
+                            {
+                                var foodPoint = IfoodList.First();
+
+                                //graphics.DrawLine(new Pen(Color.Black), Location, ToMove.Last());
+
+                                var p1 = new System.Windows.Vector(Location.X, Location.Y);
+                                var p2 = new System.Windows.Vector(foodPoint.X, foodPoint.Y);
+                                if (System.Windows.Vector.Subtract(p1, p2).Length <= 500)
+                                {
+                                    GotoPoint = new Point((int) p2.X, (int) p2.Y);
+                                }
+                            }
+
+
+
+
+                            List<Point> tomoveList;
+
+                            //*** Calculates the distance and approximates hops number.
+                            double count_per =
+                                (Math.Pow(Location.X - GotoPoint.X, 2) + Math.Pow(Location.Y - Location.Y, 2));
+                            var nrwithzero = new string('0', count_per.ToString().Length - 2);
+                            var nr = int.Parse("1" + nrwithzero);
+                            var count_per1 = count_per / nr;
+                            var count = count_per1;
+                            if (count > 40)
+                            {
+                                count /= 2;
+                            }
+
+                            // Convert hops number in hops, in points.
+                            tomoveList = SplitLine(new Point(Location.X, Location.Y),
+                                new Point(GotoPoint.X, GotoPoint.Y), (int) count);
+
+                            tomoveList.Remove(tomoveList.First());
+                            ToMove = tomoveList;
+                            
+                            GotoDone = false;
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+
+                    }
+
+
                 }
-                if (location.Y < 1)
+
+                if (Calories >= 40)
                 {
-                    location.Y = 1;
+                    while (!(Calories <= 20))
+                    {
+                        if (Infected & r.Next(200) < 20)
+                        {
+                            gameArray.Add(new Cell(20, Color.Brown, new Point(Location.X + Rand(true), Location.Y + Rand(true)), false, ProtInf + 1));
+                        }
+                        else
+                        {
+                            gameArray.Add(new Cell(20, Color.Brown, new Point(Location.X + Rand(true), Location.Y + Rand(true)), Infected, ProtInf));
+                        }
+                        Calories -= 20;
+                    }
+
+
                 }
-                if (location.X > limitX)
+
+                if (!GotoDone)
                 {
-                    location.X = (int)limitY - 1;
+                    try
+                    {
+                        Location = new Point(ToMove.First().X + Rand(), ToMove.First().Y + Rand());
+                        if (ToMove.Count == 1)
+                        {
+                            GotoDone = true;
+                        }
+                        ToMove.Remove(ToMove.First());
+
+                        foreach (var o in gameArray)
+                        {
+                            if (o is Food food)
+                            {
+                                if (((food.Location.X >= Location.X &
+                                      food.Location.X <= Location.X + Size) |
+
+                                     (food.Location.X <= Location.X &
+                                      food.Location.X >= Location.X - Size)) &
+
+                                    /////////////////////////////////////
+
+                                    ((food.Location.Y >= Location.Y &
+                                      food.Location.Y <= Location.Y + Size) |
+
+                                     (food.Location.Y <= Location.Y &
+                                      food.Location.Y >= Location.Y - Size)))
+                                {
+                                    Calories += food.Calories;
+                                    gameArray.Remove(food);
+                                }
+                            }
+
+                            if (o is Cell cell)
+                                if (cell.Dead)
+                                {
+                                    if (((cell.Location.X >= Location.X &
+                                          cell.Location.X <= Location.X + Size + 2) |
+
+                                         (cell.Location.X <= Location.X &
+                                          cell.Location.X >= Location.X - Size + 2)) &
+
+                                        /////////////////////////////////////
+
+                                        ((cell.Location.Y >= Location.Y &
+                                          cell.Location.Y <= Location.Y + Size + 2) |
+
+                                         (cell.Location.Y <= Location.Y &
+                                          cell.Location.Y >= Location.Y - Size + 2)))
+                                    {
+                                        if(Calories >= 20)
+                                        Calories += 5;
+                                        Infected = cell.Infected;
+                                        gameArray.Remove(cell);
+                                    }
+                                }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        
+                    }
                 }
-                if (location.Y > limitY)
+
+                
+
+                    foodTick--;
+                    if (limitX.HasValue & limitY.HasValue)
+                    {
+                        var location = Location;
+                        location.X += Rand();
+                        location.Y += Rand();
+                        if (location.X < 1)
+                        {
+                            location.X = 1;
+                        }
+
+                        if (location.Y < 1)
+                        {
+                            location.Y = 1;
+                        }
+
+                        if (location.X > limitX)
+                        {
+                            location.X = (int) limitY - 1;
+                        }
+
+                        if (location.Y > limitY)
+                        {
+                            location.Y = (int) limitY - 1;
+                        }
+
+                        Location = location;
+                }
+                else
                 {
-                    location.Y = (int)limitY - 1;
+                    var location = Location;
+                    location.X += Rand();
+                    location.Y += Rand();
+                    if (location.X < 1)
+                    {
+                        location.X = 1;
+                    }
+
+                    if (location.Y < 1)
+                    {
+                        location.Y = 1;
+                    }
+
+                    if (location.X > limitX)
+                    {
+                        location.X = (int)limitY - 1;
+                    }
+
+                    if (location.Y > limitY)
+                    {
+                        location.Y = (int)limitY - 1;
+                    }
+
+                    Location = location;
+
+                    Location = location;
                 }
-                Location = location;
-            }
-            else
-            {
-                var location = Location;
-                location.X += Rand();
-                location.Y += Rand();
-                if (location.X < 1)
-                {
-                    location.X = 1;
-                }
-                if (location.Y < 1)
-                {
-                    location.Y = 1;
-                }
-                if (location.X > 800)
-                {
-                    location.X = 800;
-                }
-                if (location.Y > 450)
-                {
-                    location.Y = 450;
-                }
-                Location = location;
             }
         }
 
@@ -684,7 +786,34 @@ namespace Cells{
             return r.Next(-1, 2);
         }
     }
+    
+    [Serializable]
+    public class Location
+    {
+        public int X;
+        public int Y;
+        public Type Type;
+        public object o;
+        public int Ifneeded;
 
+        public Location(object Object, int x, int y, int ifneeded)
+        {
+            o = Object;
+            Type = Object.GetType();
+            X = x;
+            Y = y;
+            Ifneeded = ifneeded;
+        }
+
+        public Location(object Object, int x, int y)
+        {
+            o = Object;
+            Type = Object.GetType();
+            X = x;
+            Y = y;
+        }
+    }
+    
     public static class Extensions
     {
         public static void DrawCircle(this Graphics g, Color col,
