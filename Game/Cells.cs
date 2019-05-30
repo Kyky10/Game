@@ -47,19 +47,19 @@ namespace Cells{
                     //
                 }
             }
-            
         }
 
-        private readonly Dictionary<Point, Point> Lines = new Dictionary<Point, Point>();
+        private Dictionary<Point, Point> Lines = new Dictionary<Point, Point>();
 
-        private static int namesL = new Names().Get().Length;
-        public string Name = new Names().Get()[r.Next(namesL)];
+        private static readonly int namesL = new Names().Get().Length;
+        public readonly string Name = new Names().Get()[r.Next(namesL)];
         public int Size { get; private set; }
         private List<Point> ToMove = new List<Point>();
         public Color Color { get; private set; }
         private bool GotoDone = true;
         private int foodTick = 60;
         public bool Dead = false;
+        public bool Boomed = false;
         public int Calories { get; private set; }
         public int ProtInf = 0;
         public int InfAtta = 0;
@@ -71,6 +71,14 @@ namespace Cells{
             r.Next(-9, 9), r.Next(-9, 9), r.Next(-9, 9), r.Next(-9, 9),
             r.Next(-9, 9), r.Next(-9, 9), r.Next(-9, 9), r.Next(-9, 9)
         };
+
+        public void Boom()
+        {
+            Boomed = true;
+            Dead = true;
+
+            //Location = Point.Empty;
+        }
 
         public static explicit operator Point(Cell m)
         {
@@ -88,11 +96,9 @@ namespace Cells{
             var t = false;
             var inf = infCount;
 
-            Color color = Color.Empty;
-
             if (!Dead)
             {
-
+                Color color;
                 if (Infected)
                 {
                     g.FillCircle(Color.HotPink.SetTrans(60), new Point(Location.X + Rand(), Location.Y + Rand()),
@@ -156,7 +162,8 @@ namespace Cells{
                         Location + (Size) line.Value + new Size(Rand(), Rand()));
                 }
             }
-            else
+
+            if(Dead & !Boomed)
             {
                 g.DrawCircle(Color.Gray, Location, Size + Calories / 5 + infCount / 10);
                 g.FillCircle(Color.DimGray.SetTrans(20), new Point(Location.X + Rand(), Location.Y + Rand()),
@@ -197,10 +204,43 @@ namespace Cells{
                 }
             }
 
-            g.DrawString(Name, new Font(FontFamily.GenericSansSerif, Size / 2, FontStyle.Bold), new SolidBrush(Color.DimGray), Location.X - Size, Location.Y - Size / 4);
+            if (Boomed & Dead)
+            {
+                for (var i = 0; i < Cicles.Count; i++)
+                {
+                    var cicle = Cicles[i];
+
+                    if (t)
+                    {
+                        loc.Y = Location.Y + cicle;
+                        var pen = new Pen(Color.ForestGreen);
+                        var XRand = Rand();
+                        var YRand = Rand();
+
+                        g.DrawEllipse(pen, loc.X + XRand, loc.Y + YRand, 6, 8);
+                        inf--;
+                        t = false;
+                    }
+                    else
+                    {
+                        loc.X = Location.X + cicle;
+                        t = true;
+                    }
+                }
+               
+            }
+
+            if (!Dead)
+            {
+                g.DrawString(Name,
+                    new Font(FontFamily.GenericSansSerif, Size / 2, FontStyle.Bold),
+                    new SolidBrush(Color.DimGray),
+                    Location.X - Size,
+                    Location.Y - Size / 4);
+            }
         }
 
-        public void Move(List<Object> gameArray, Graphics graphics,int? limitX = null, int? limitY = null)
+        public void Move(List<Object> gameArray, Graphics graphics, int? limitX = null, int? limitY = null)
         {
             if (!Dead)
             {
@@ -253,17 +293,8 @@ namespace Cells{
                                 gameArray.Add(new Virus(loc, InfAtta));
                             }
 
-                            foreach (var o in gameArray)
-                            {
-                                if (o is Cell)
-                                {
-                                    var cell = (Cell) o;
-                                    if (cell.Location == Location & cell.ProtInf == ProtInf)
-                                    {
-                                        gameArray.Remove(cell);
-                                    }
-                                }
-                            }
+                            Boom();
+                            return;
                         }
                         else
                         {
@@ -299,11 +330,14 @@ namespace Cells{
 
                         if (o is Cell cell)
                         {
-                            if(cell.Dead)
-                                foodList.Add(new Location(cell, cell.Location.X, cell.Location.Y, 1));
+                            if (cell.Lines != Lines & cell.Location != Location & !cell.Boomed)
+                            {
+                                if (cell.Dead)
+                                    foodList.Add(new Location(cell, cell.Location.X, cell.Location.Y, 1));
 
-                            if(cell.Dead & cell.Infected)
-                                foodList.Add(new Location(cell, cell.Location.X, cell.Location.Y, 2));
+                                if (cell.Dead & cell.Infected)
+                                    foodList.Add(new Location(cell, cell.Location.X, cell.Location.Y, 2));
+                            }
                         }
                     }
 
@@ -452,33 +486,118 @@ namespace Cells{
 
                 
 
-                    foodTick--;
-                    if (limitX.HasValue & limitY.HasValue)
+                foodTick--;
+
+                var t = false;
+                var loc1 = new Point(Location.X - 5, Location.Y + 2);
+
+                if (Boomed)
+                {
+                    var location = Location;
+                    location.X += r.Next(-29, 30);
+                    location.Y += r.Next(-29, 30);
+                    Location = location;
+
+
+                    for (var i = 0; i < Cicles.Count; i++)
                     {
-                        var location = Location;
-                        location.X += Rand();
-                        location.Y += Rand();
-                        if (location.X < 1)
+                        var cicle = Cicles[i];
+                        Cicles[i] = r.Next(cicle - 9, cicle + 10);
+
+                        if (t)
                         {
-                            location.X = 1;
+                            loc1.Y = Location.Y + cicle;
+
+                            if (limitX.HasValue & limitY.HasValue)
+                            {
+                                loc1.X += r.Next(-49, 50);
+                                loc1.Y += r.Next(-49, 50);
+                                if (loc1.X < 1)
+                                {
+                                    loc1.X = 1;
+                                }
+
+                                if (loc1.Y < 1)
+                                {
+                                    loc1.Y = 1;
+                                }
+
+                                if (loc1.X > limitX)
+                                {
+                                    loc1.X = (int) limitY - 1;
+                                }
+
+                                if (loc1.Y > limitY)
+                                {
+                                    loc1.Y = (int) limitY - 1;
+                                }
+                            }
+                            else
+                            {
+                                loc1.X += r.Next(-49, 50);
+                                loc1.Y += r.Next(-49, 50);
+                                if (loc1.X < 1)
+                                {
+                                    loc1.X = 1;
+                                }
+
+                                if (loc1.Y < 1)
+                                {
+                                    loc1.Y = 1;
+                                }
+
+                                if (loc1.X > limitX)
+                                {
+                                    loc1.X = (int) limitY - 1;
+                                }
+
+                                if (loc1.Y > limitY)
+                                {
+                                    loc1.Y = (int) limitY - 1;
+                                }
+                            }
+
+                            Cicles[i - 1] = loc1.X;
+                            Cicles[i] = loc1.Y;
+
+                            t = false;
+                        }
+                        else
+                        {
+                            loc1.X = Location.X + cicle;
+                            t = true;
                         }
 
-                        if (location.Y < 1)
-                        {
-                            location.Y = 1;
-                        }
 
-                        if (location.X > limitX)
-                        {
-                            location.X = (int) limitY - 1;
-                        }
+                    }
+                }
 
-                        if (location.Y > limitY)
-                        {
-                            location.Y = (int) limitY - 1;
-                        }
+                if (limitX.HasValue & limitY.HasValue)
+                {
+                    var location = Location;
+                    location.X += Rand();
+                    location.Y += Rand();
+                    if (location.X < 1)
+                    {
+                        location.X = 1;
+                    }
 
-                        Location = location;
+                    if (location.Y < 1)
+                    {
+                        location.Y = 1;
+                    }
+
+                    if (location.X > limitX)
+                    {
+                        location.X = (int) limitY - 1;
+                    }
+
+                    if (location.Y > limitY)
+                    {
+                        location.Y = (int) limitY - 1;
+                    }
+
+                    Location = location;
                 }
                 else
                 {
@@ -504,8 +623,6 @@ namespace Cells{
                     {
                         location.Y = (int)limitY - 1;
                     }
-
-                    Location = location;
 
                     Location = location;
                 }
