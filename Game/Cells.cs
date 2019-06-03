@@ -589,7 +589,7 @@ namespace Cells{
 
                     if (location.X > limitX)
                     {
-                        location.X = (int) limitY - 1;
+                        location.X = (int) limitX - 1;
                     }
 
                     if (location.Y > limitY)
